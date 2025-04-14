@@ -65,7 +65,7 @@ pub trait IterUtil<T> {
 
 impl<I, T> IterUtil<T> for I
 where
-  I: ExactSizeIterator<Item = T> + Clone + 'static,
+  I: ExactSizeIterator<Item = T> + Clone,
   T: Clone,
 {
   fn all_combinations(self) -> impl Iterator<Item = Vec<T>> {
