@@ -50,8 +50,12 @@ impl PartitionsTable {
   }
 
   fn num_partitions(&mut self, n: u32, m: u32) -> usize {
-    self.ensure_filled(n, m);
-    self.partitions_count[Self::idx(n, m)]
+    if n == 0 {
+      0
+    } else {
+      self.ensure_filled(n, m);
+      self.partitions_count[Self::idx(n, m)]
+    }
   }
 }
 
@@ -112,7 +116,10 @@ where
 
 #[cfg(test)]
 mod tests {
-  use googletest::{assert_that, prelude::unordered_elements_are};
+  use googletest::{
+    assert_that,
+    prelude::{empty, unordered_elements_are},
+  };
   use itertools::Itertools;
   use rand::{rng, seq::SliceRandom};
 
@@ -202,5 +209,11 @@ mod tests {
         unordered_elements_are![&[1], &[2], &[3], &[4]],
       ]
     );
+  }
+
+  #[test]
+  fn test_empty_partitions() {
+    let iter = 1..1;
+    assert_that!(iter.all_partitions().collect::<Vec<Vec<Vec<_>>>>(), empty());
   }
 }
