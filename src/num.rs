@@ -32,6 +32,11 @@ impl PrimeFactorization {
     self.primes.len() == 1 && !self.is_one()
   }
 
+  pub fn smallest_prime_factor(&self) -> u32 {
+    debug_assert!(!self.is_zero() && !self.is_one());
+    self.primes[0].0
+  }
+
   pub fn prime_factors(&self) -> impl Iterator<Item = u32> {
     self.primes.iter().map(|&(p, _)| p)
   }
