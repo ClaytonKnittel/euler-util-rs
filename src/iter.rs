@@ -1,4 +1,28 @@
+use std::ops::Add;
+
 use itertools::Itertools;
+
+pub trait IterUtil<T> {
+  fn accumulate(self) -> impl Iterator<Item = T>
+  where
+    T: Add<T, Output = T>;
+}
+
+impl<I, T> IterUtil<T> for I
+where
+  I: Iterator<Item = T>,
+  T: Clone + Default,
+{
+  fn accumulate(self) -> impl Iterator<Item = T>
+  where
+    T: Add<T, Output = T>,
+  {
+    self.scan(T::default(), |total, t| {
+      *total = total.clone() + t;
+      Some(total.clone())
+    })
+  }
+}
 
 struct PartitionsTable {
   partitions_count: Vec<usize>,
@@ -59,7 +83,7 @@ impl PartitionsTable {
   }
 }
 
-pub trait IterUtil<T> {
+pub trait ExactSizeIterUtil<T> {
   fn all_combinations(self) -> impl Iterator<Item = Vec<T>>;
 
   fn all_subset_combinations(self) -> impl Iterator<Item = Vec<T>>;
@@ -67,7 +91,7 @@ pub trait IterUtil<T> {
   fn all_partitions(self) -> impl ExactSizeIterator<Item = Vec<Vec<T>>>;
 }
 
-impl<I, T> IterUtil<T> for I
+impl<I, T> ExactSizeIterUtil<T> for I
 where
   I: ExactSizeIterator<Item = T> + Clone,
   T: Clone,
@@ -123,9 +147,17 @@ mod tests {
   use itertools::Itertools;
   use rand::{rng, seq::SliceRandom};
 
-  use crate::iter::PartitionsTable;
+  use crate::iter::{ExactSizeIterUtil, PartitionsTable};
 
   use super::IterUtil;
+
+  #[test]
+  fn test_accumulate() {
+    assert_eq!(
+      [1, 3, 2, 9, 10].into_iter().accumulate().collect_vec(),
+      vec![1, 4, 6, 15, 25]
+    );
+  }
 
   #[test]
   fn test_idx() {
