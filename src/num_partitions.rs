@@ -4,6 +4,52 @@ pub fn num_partitions(n: u32, k: u32) -> impl Iterator<Item = impl Iterator<Item
   num_partitions_helper(n, k, n)
 }
 
+pub fn num_partitions2(n: u32, k: u32) -> NumPartitiosIter {
+  NumPartitiosIter::new(n, k)
+}
+
+pub struct NumPartitiosIter {
+  n: u32,
+  k: u32,
+  stack: Vec<u32>,
+}
+
+impl NumPartitiosIter {
+  fn new(n: u32, k: u32) -> Self {
+    debug_assert!(k <= n);
+    debug_assert!(n > 0);
+    debug_assert!(k > 0);
+
+    let mut stack = Vec::with_capacity(k as usize);
+    stack.push(n - k + 2);
+    Self { n, k, stack }
+  }
+
+  pub fn advance(&mut self) -> Option<impl Iterator<Item = u32> + '_> {
+    let mut total: u32 = self.stack.iter().sum();
+    let mut prev_choice = self.stack.pop()?;
+    total -= prev_choice;
+    while prev_choice == 1
+      || (prev_choice - 1) * (self.k - self.stack.len() as u32) < (self.n - total)
+    {
+      prev_choice = self.stack.pop()?;
+      total -= prev_choice.min(self.n);
+    }
+
+    let next_choice = prev_choice - 1;
+    self.stack.push(next_choice);
+    total += next_choice;
+
+    for remaining in (0..(self.k - self.stack.len() as u32)).rev() {
+      let choice = (self.n - total - remaining).min(next_choice);
+      self.stack.push(choice);
+      total += choice;
+    }
+
+    Some(self.stack.iter().cloned())
+  }
+}
+
 fn num_partitions_helper(
   n: u32,
   k: u32,
@@ -39,12 +85,27 @@ mod tests {
 
   use crate::num_partitions::num_partitions;
 
+  use super::NumPartitiosIter;
+
+  fn collect_partitions(mut partitions_iter: NumPartitiosIter) -> Vec<Vec<u32>> {
+    let mut result = vec![];
+    while let Some(partition) = partitions_iter.advance() {
+      result.push(partition.collect());
+    }
+    result
+  }
+
   #[test]
   fn test_one() {
     assert_that!(
       num_partitions(1, 1)
         .map(|partition| partition.collect_vec())
         .collect_vec(),
+      unordered_elements_are![unordered_elements_are![&1]]
+    );
+
+    assert_that!(
+      collect_partitions(NumPartitiosIter::new(1, 1)),
       unordered_elements_are![unordered_elements_are![&1]]
     );
   }
@@ -57,6 +118,11 @@ mod tests {
         .collect_vec(),
       unordered_elements_are![unordered_elements_are![&2]]
     );
+
+    assert_that!(
+      collect_partitions(NumPartitiosIter::new(2, 1)),
+      unordered_elements_are![unordered_elements_are![&2]]
+    );
   }
 
   #[test]
@@ -65,6 +131,11 @@ mod tests {
       num_partitions(2, 2)
         .map(|partition| partition.collect_vec())
         .collect_vec(),
+      unordered_elements_are![unordered_elements_are![&1, &1]]
+    );
+
+    assert_that!(
+      collect_partitions(NumPartitiosIter::new(2, 2)),
       unordered_elements_are![unordered_elements_are![&1, &1]]
     );
   }
@@ -77,7 +148,15 @@ mod tests {
         .collect_vec(),
       unordered_elements_are![
         unordered_elements_are![&1, &3],
-        unordered_elements_are![&2, &2]
+        unordered_elements_are![&2, &2],
+      ]
+    );
+
+    assert_that!(
+      collect_partitions(NumPartitiosIter::new(4, 2)),
+      unordered_elements_are![
+        unordered_elements_are![&1, &3],
+        unordered_elements_are![&2, &2],
       ]
     );
   }
@@ -88,6 +167,16 @@ mod tests {
       num_partitions(7, 3)
         .map(|partition| partition.collect_vec())
         .collect_vec(),
+      unordered_elements_are![
+        unordered_elements_are![&1, &1, &5],
+        unordered_elements_are![&1, &2, &4],
+        unordered_elements_are![&1, &3, &3],
+        unordered_elements_are![&2, &2, &3],
+      ]
+    );
+
+    assert_that!(
+      collect_partitions(NumPartitiosIter::new(7, 3)),
       unordered_elements_are![
         unordered_elements_are![&1, &1, &5],
         unordered_elements_are![&1, &2, &4],
