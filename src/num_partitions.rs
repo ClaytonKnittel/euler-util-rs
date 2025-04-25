@@ -1,4 +1,8 @@
+use std::{iter::Cloned, slice};
+
 use either::Either;
+
+use crate::owned_iterator::OwnedIterator;
 
 pub fn num_partitions(n: u32, k: u32) -> impl Iterator<Item = impl Iterator<Item = u32>> {
   num_partitions_helper(n, k, n)
@@ -24,8 +28,15 @@ impl NumPartitiosIter {
     stack.push(n - k + 2);
     Self { n, k, stack }
   }
+}
 
-  pub fn advance(&mut self) -> Option<impl Iterator<Item = u32> + '_> {
+impl OwnedIterator for NumPartitiosIter {
+  type Item<'a>
+    = Cloned<slice::Iter<'a, u32>>
+  where
+    Self: 'a;
+
+  fn next<'a>(&'a mut self) -> Option<Self::Item<'a>> {
     let mut total: u32 = self.stack.iter().sum();
     let mut prev_choice = self.stack.pop()?;
     total -= prev_choice;
@@ -83,13 +94,13 @@ mod tests {
   use googletest::{assert_that, prelude::unordered_elements_are};
   use itertools::Itertools;
 
-  use crate::num_partitions::num_partitions;
+  use crate::{num_partitions::num_partitions, owned_iterator::OwnedIterator};
 
   use super::NumPartitiosIter;
 
   fn collect_partitions(mut partitions_iter: NumPartitiosIter) -> Vec<Vec<u32>> {
     let mut result = vec![];
-    while let Some(partition) = partitions_iter.advance() {
+    while let Some(partition) = partitions_iter.next() {
       result.push(partition.collect());
     }
     result
